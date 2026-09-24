@@ -1,0 +1,404 @@
+nameOverride: ""
+fullnameOverride: ""
+revisionHistoryLimit: 3
+
+namespace:
+  create: false
+  name: ""
+  labels: {}
+  annotations: {}
+  podSecurity:
+    enforce: restricted
+    audit: restricted
+    warn: restricted
+    version: latest
+
+ports:
+  http: 8080
+  metrics: 9090
+
+probeDefaults:
+  startup:
+    periodSeconds: 2
+    timeoutSeconds: 2
+    failureThreshold: 30
+  readiness:
+    periodSeconds: 10
+    timeoutSeconds: 3
+    failureThreshold: 3
+    successThreshold: 1
+  liveness:
+    periodSeconds: 20
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+scheduling:
+  podAntiAffinity:
+    enabled: true
+  topologySpread:
+    enabled: true
+    maxSkew: 1
+    topologyKey: kubernetes.io/hostname
+    whenUnsatisfiable: ScheduleAnyway
+
+lookingGlass:
+  location: GeiseIT Network
+  hostname: lg.geiseit.com
+  asn: ""
+  network: GeiseIT
+  ipv4: ""
+  ipv6: ""
+
+security:
+  extraBlockedCidrs: []
+  extraBlockedSuffixes: []
+
+otel:
+  endpoint: ""
+
+web:
+  replicaCount: 2
+  image:
+    registry: registry.geiseit.com
+    repository: geiseit-lg/web
+    tag: ""
+    digest: ""
+    pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    privileged: false
+    capabilities:
+      drop: [ALL]
+  probes:
+    livenessPath: /healthz
+    readinessPath: /healthz
+    initialDelaySeconds:
+      startup: 5
+      readiness: 5
+      liveness: 10
+  service:
+    type: ClusterIP
+    annotations: {}
+  resources:
+    requests: {cpu: 100m, memory: 192Mi}
+    limits: {cpu: 500m, memory: 384Mi}
+  tmpSizeLimit: 64Mi
+  extraEmptyDirs:
+    - name: next-cache
+      mountPath: /app/.next/cache
+      sizeLimit: 256Mi
+  terminationGracePeriodSeconds: 30
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 4
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: null
+  pdb:
+    enabled: true
+    minAvailable: 1
+  config:
+    apiInternalUrl: ""
+    nodeEnv: production
+    extra: {}
+  podAnnotations: {}
+  podLabels: {}
+  priorityClassName: ""
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
+
+api:
+  replicaCount: 2
+  image:
+    registry: registry.geiseit.com
+    repository: geiseit-lg/api
+    tag: ""
+    digest: ""
+    pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    privileged: false
+    capabilities:
+      drop: [ALL]
+  probes:
+    livenessPath: /health/live
+    readinessPath: /health/ready
+    initialDelaySeconds:
+      startup: 0
+      readiness: 0
+      liveness: 0
+  service:
+    type: ClusterIP
+    annotations: {}
+  resources:
+    requests: {cpu: 100m, memory: 128Mi}
+    limits: {cpu: 500m, memory: 384Mi}
+  tmpSizeLimit: 64Mi
+  extraEmptyDirs: []
+  terminationGracePeriodSeconds: 30
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: null
+  pdb:
+    enabled: true
+    minAvailable: 1
+  config:
+    diagnosticsBaseUrl: ""
+    diagnosticsTimeoutSeconds: 45
+    rateLimiting:
+      pingPerMinute: 10
+      traceroutePerMinute: 5
+      mtrPerMinute: 3
+      dnsPerMinute: 20
+      maxConcurrentPerIp: 2
+    # Only requests from these CIDRs may set X-Forwarded-For; the ingress controller pods must be inside them.
+    trustedProxies:
+      - 10.0.0.0/8
+      - 172.16.0.0/12
+      - 192.168.0.0/16
+    forwardLimit: 1
+    activity:
+      enabled: true
+      retentionMinutes: 60
+      maxItems: 10
+    extra: {}
+  existingSecret: ""
+  secretEnv: {}
+  podAnnotations: {}
+  podLabels: {}
+  priorityClassName: ""
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
+
+diagnostics:
+  replicaCount: 2
+  image:
+    registry: registry.geiseit.com
+    repository: geiseit-lg/diagnostics
+    tag: ""
+    digest: ""
+    pullPolicy: IfNotPresent
+  imagePullSecrets: []
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    fsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containerSecurityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    privileged: false
+    capabilities:
+      drop: [ALL]
+  # Unprivileged ICMP echo sockets need the caller's gid inside this range. Safe sysctl since Kubernetes 1.18; allowed by PSA restricted.
+  icmp:
+    pingGroupRange: "0 2147483647"
+  # Adds NET_RAW. PSA restricted and baseline reject it, so it needs a relaxed namespace label (see docs/deployment.md).
+  netRawFallback:
+    enabled: false
+  probes:
+    livenessPath: /health/live
+    readinessPath: /health/ready
+    initialDelaySeconds:
+      startup: 0
+      readiness: 0
+      liveness: 0
+  service:
+    type: ClusterIP
+    annotations: {}
+  resources:
+    requests: {cpu: 100m, memory: 128Mi}
+    limits: {cpu: "1", memory: 512Mi}
+  tmpSizeLimit: 64Mi
+  extraEmptyDirs: []
+  terminationGracePeriodSeconds: 60
+  autoscaling:
+    enabled: true
+    minReplicas: 2
+    maxReplicas: 6
+    targetCPUUtilizationPercentage: 70
+    targetMemoryUtilizationPercentage: null
+  pdb:
+    enabled: true
+    minAvailable: 1
+  config:
+    maxConcurrent: 4
+    maxQueued: 16
+    timeoutSeconds: 45
+    maxOutputBytes: 65536
+    redactPrivateHops: true
+    simulated: false
+    dnsResolvers:
+      - 1.1.1.1
+      - 9.9.9.9
+      - 8.8.8.8
+    connectivity:
+      intervalSeconds: 60
+      windowSeconds: 86400
+      ipv4Targets:
+        - 1.1.1.1:443
+        - 8.8.8.8:443
+      ipv6Targets:
+        - "[2606:4700:4700::1111]:443"
+        - "[2001:4860:4860::8888]:443"
+    egress:
+      ipv4: ""
+      ipv6: ""
+    extra: {}
+  existingSecret: ""
+  secretEnv: {}
+  podAnnotations: {}
+  podLabels: {}
+  priorityClassName: ""
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  extraEnv: []
+  extraVolumes: []
+  extraVolumeMounts: []
+
+# Reserved for the optional read-only BGP service. There is no image yet: nothing is rendered; only Bgp__Enabled on the API follows this flag.
+bgp:
+  enabled: false
+
+ingress:
+  enabled: true
+  className: nginx
+  host: lg.geiseit.com
+  labels: {}
+  # Per-IP rate limiting needs the real client address at the API. Keep externalTrafficPolicy: Local on the
+  # ingress controller Service (or PROXY protocol) and enable use-forwarded-headers when a proxy sits in front.
+  annotations: {}
+  nginx:
+    enabled: true
+    proxyReadTimeout: 60
+    proxySendTimeout: 60
+    proxyBodySize: 16k
+  tls:
+    enabled: true
+    secretName: looking-glass-tls
+  certManager:
+    clusterIssuer: letsencrypt-prod
+
+networkPolicy:
+  enabled: true
+  ingressControllerNamespaceSelector:
+    kubernetes.io/metadata.name: ingress-nginx
+  ingressControllerPodSelector: {}
+  monitoringNamespaceSelector:
+    kubernetes.io/metadata.name: monitoring
+  dns:
+    namespaceSelector:
+      kubernetes.io/metadata.name: kube-system
+    podSelector:
+      k8s-app: kube-dns
+  otlpEgress:
+    enabled: false
+    namespaceSelector: {}
+    podSelector: {}
+    port: 4317
+  diagnostics:
+    allowClusterDns: false
+    # Mirrors the application's SSRF blocklist so a compromised process still cannot reach the cluster, nodes or metadata services.
+    exceptCidrs:
+      - 10.0.0.0/8
+      - 172.16.0.0/12
+      - 192.168.0.0/16
+      - 100.64.0.0/10
+      - 169.254.0.0/16
+      - 127.0.0.0/8
+      - fc00::/7
+      - fe80::/10
+    extraExceptCidrs: []
+
+rbac:
+  create: false
+  rules: []
+
+quota:
+  enabled: false
+  hard:
+    requests.cpu: "6"
+    requests.memory: 6Gi
+    limits.cpu: "12"
+    limits.memory: 12Gi
+    pods: "40"
+
+limitRange:
+  enabled: false
+  default:
+    cpu: 500m
+    memory: 512Mi
+  defaultRequest:
+    cpu: 50m
+    memory: 64Mi
+  max:
+    cpu: "2"
+    memory: 2Gi
+
+monitoring:
+  serviceMonitor:
+    enabled: false
+    namespace: ""
+    labels: {}
+    interval: 30s
+    scrapeTimeout: 10s
+  podMonitor:
+    enabled: false
+    namespace: ""
+    labels: {}
+    interval: 30s
+    scrapeTimeout: 10s
+  prometheusRule:
+    enabled: false
+    namespace: ""
+    labels: {}
+    failureRatioThreshold: 0.1
+    latencyP95ThresholdSeconds: 30
+    rejectedPerSecondThreshold: 0.5
+  grafanaDashboard:
+    enabled: false
+    namespace: ""
+    labels:
+      grafana_dashboard: "1"
+    annotations: {}
+
+tests:
+  enabled: true
+  image:
+    registry: docker.io
+    repository: curlimages/curl
+    tag: "8.11.1"
+    digest: ""
+    pullPolicy: IfNotPresent

@@ -1,0 +1,10 @@
+services:
+  api:
+    ports:
+      - "127.0.0.1:9090:9090"
+
+  diagnostics:
+    environment:
+      Diagnostics__Simulated: "true"
+    ports:
+      - "127.0.0.1:9091:9090"

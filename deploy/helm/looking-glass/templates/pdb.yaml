@@ -1,0 +1,18 @@
+{{- range $c := list "web" "api" "diagnostics" }}
+{{- $cfg := index $.Values $c }}
+{{- if $cfg.pdb.enabled }}
+{{- $ctx := dict "root" $ "component" $c }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "lg.componentName" $ctx }}
+  labels:
+    {{- include "lg.labels" $ctx | nindent 4 }}
+spec:
+  minAvailable: {{ $cfg.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "lg.selectorLabels" $ctx | nindent 6 }}
+{{- end }}
+{{- end }}

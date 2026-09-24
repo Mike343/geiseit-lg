@@ -1,0 +1,14 @@
+**/bin
+**/obj
+**/node_modules
+**/.next
+**/dist
+.git
+.github
+.vs
+src/Web
+tests
+deploy
+docs
+scripts
+*.md

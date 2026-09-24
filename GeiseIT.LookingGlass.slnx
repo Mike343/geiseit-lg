@@ -1,0 +1,22 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/Api/">
+    <Project Path="src/Api/GeiseIT.LookingGlass.Api.csproj" />
+  </Folder>
+  <Folder Name="/src/Contracts/">
+    <Project Path="src/Contracts/GeiseIT.LookingGlass.Contracts.csproj" />
+  </Folder>
+  <Folder Name="/src/Diagnostics/">
+    <Project Path="src/Diagnostics/GeiseIT.LookingGlass.Diagnostics.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/Api.Tests/">
+    <Project Path="tests/Api.Tests/GeiseIT.LookingGlass.Api.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Contracts.Tests/">
+    <Project Path="tests/Contracts.Tests/GeiseIT.LookingGlass.Contracts.Tests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Diagnostics.Tests/">
+    <Project Path="tests/Diagnostics.Tests/GeiseIT.LookingGlass.Diagnostics.Tests.csproj" />
+  </Folder>
+</Solution>

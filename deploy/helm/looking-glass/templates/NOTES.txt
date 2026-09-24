@@ -1,0 +1,38 @@
+GeiseIT Network Looking Glass {{ .Chart.AppVersion }} installed as "{{ .Release.Name }}" in namespace "{{ .Release.Namespace }}".
+
+Workloads:
+  {{ include "lg.componentName" (dict "root" . "component" "web") }}          Next.js web (port {{ .Values.ports.http }})
+  {{ include "lg.componentName" (dict "root" . "component" "api") }}          API (port {{ .Values.ports.http }}, metrics {{ .Values.ports.metrics }})
+  {{ include "lg.componentName" (dict "root" . "component" "diagnostics") }}  diagnostics worker (port {{ .Values.ports.http }}, metrics {{ .Values.ports.metrics }})
+
+{{- if .Values.ingress.enabled }}
+
+URL: {{ ternary "https" "http" .Values.ingress.tls.enabled }}://{{ .Values.ingress.host }}
+{{- else }}
+
+Ingress is disabled. Reach the site with:
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "lg.componentName" (dict "root" . "component" "web") }} 8080:{{ .Values.ports.http }}
+{{- end }}
+
+Check the rollout:
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "lg.componentName" (dict "root" . "component" "api") }}
+  helm test {{ .Release.Name }} -n {{ .Release.Namespace }}
+{{- if and .Values.ingress.enabled .Values.networkPolicy.enabled }}
+
+NetworkPolicies are enforced. The ingress controller must run in a namespace matching
+{{ toJson .Values.networkPolicy.ingressControllerNamespaceSelector }}; adjust networkPolicy.ingressControllerNamespaceSelector otherwise.
+{{- end }}
+{{- if or .Values.monitoring.serviceMonitor.enabled .Values.monitoring.podMonitor.enabled .Values.monitoring.prometheusRule.enabled }}
+{{- if not (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1") }}
+
+WARNING: monitoring.coreos.com/v1 is not available; ServiceMonitor, PodMonitor and PrometheusRule were not rendered.
+{{- end }}
+{{- end }}
+{{- if .Values.diagnostics.netRawFallback.enabled }}
+
+WARNING: diagnostics.netRawFallback.enabled adds NET_RAW. The namespace must not enforce the "restricted" or "baseline" Pod Security level.
+{{- end }}
+{{- if .Values.diagnostics.config.simulated }}
+
+WARNING: Diagnostics__Simulated is true; results are synthetic. Do not use this in production.
+{{- end }}

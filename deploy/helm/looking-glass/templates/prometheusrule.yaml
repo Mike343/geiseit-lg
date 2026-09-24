@@ -1,0 +1,64 @@
+{{- $r := .Values.monitoring.prometheusRule }}
+{{- if and $r.enabled (.Capabilities.APIVersions.Has "monitoring.coreos.com/v1") }}
+{{- $ns := .Release.Namespace }}
+{{- $pods := printf "%s-(api|diagnostics)-.*" (include "lg.fullname" .) }}
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "lg.fullname" . }}
+  namespace: {{ default .Release.Namespace $r.namespace }}
+  labels:
+    {{- include "lg.baseLabels" . | nindent 4 }}
+    {{- with $r.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: looking-glass
+      rules:
+        - alert: LookingGlassTargetDown
+          expr: up{namespace={{ $ns | quote }}, pod=~{{ $pods | quote }}} == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Looking Glass metrics target down
+            description: Pod {{ "{{ $labels.pod }}" }} has not been scrapeable for 5 minutes.
+        - alert: LookingGlassHighFailureRate
+          expr: |
+            sum(rate(looking_glass_requests_failed_total{namespace={{ $ns | quote }}}[5m]))
+              / clamp_min(sum(rate(looking_glass_requests_total{namespace={{ $ns | quote }}}[5m])), 0.001)
+              > {{ $r.failureRatioThreshold }}
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Looking Glass request failure ratio is high
+            description: More than {{ mulf $r.failureRatioThreshold 100 }}% of requests failed over the last 10 minutes.
+        - alert: LookingGlassDiagnosticsRejected
+          expr: sum(rate(looking_glass_diagnostics_rejected_total{namespace={{ $ns | quote }}}[5m])) > {{ $r.rejectedPerSecondThreshold }}
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Diagnostics requests are being rejected
+            description: Diagnostics capacity is exhausted or a client is abusing the service.
+        - alert: LookingGlassDiagnosticsSaturated
+          expr: max(looking_glass_diagnostics_active{namespace={{ $ns | quote }}}) >= {{ .Values.diagnostics.config.maxConcurrent }}
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Diagnostics workers are saturated
+            description: A diagnostics pod has been running at its concurrency limit for 15 minutes.
+        - alert: LookingGlassHighLatency
+          expr: |
+            histogram_quantile(0.95, sum by (le) (rate(looking_glass_request_duration_seconds_bucket{namespace={{ $ns | quote }}}[5m])))
+              > {{ $r.latencyP95ThresholdSeconds }}
+          for: 10m
+          labels:
+            severity: warning
+          annotations:
+            summary: Looking Glass p95 request duration is high
+            description: p95 request duration has exceeded {{ $r.latencyP95ThresholdSeconds }}s for 10 minutes.
+{{- end }}

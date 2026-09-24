@@ -1,0 +1,13 @@
+{{- include "lg.validate" . -}}
+{{- range $c := list "web" "api" "diagnostics" }}
+{{- $ctx := dict "root" $ "component" $c "cfg" (index $.Values $c) }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "lg.componentName" $ctx }}
+  labels:
+    {{- include "lg.labels" $ctx | nindent 4 }}
+data:
+  {{- include "lg.configData" $ctx | nindent 2 }}
+{{- end }}

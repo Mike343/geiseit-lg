@@ -1,0 +1,40 @@
+{{- range $c := list "web" "api" "diagnostics" }}
+{{- $cfg := index $.Values $c }}
+{{- if $cfg.autoscaling.enabled }}
+{{- $ctx := dict "root" $ "component" $c }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "lg.componentName" $ctx }}
+  labels:
+    {{- include "lg.labels" $ctx | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "lg.componentName" $ctx }}
+  minReplicas: {{ $cfg.autoscaling.minReplicas }}
+  maxReplicas: {{ $cfg.autoscaling.maxReplicas }}
+  metrics:
+    {{- with $cfg.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ . }}
+    {{- end }}
+    {{- with $cfg.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ . }}
+    {{- end }}
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+{{- end }}
+{{- end }}

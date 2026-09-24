@@ -1,0 +1,13 @@
+apiVersion: v2
+name: looking-glass
+description: GeiseIT Network Looking Glass - web, API and diagnostics workloads
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+kubeVersion: ">=1.27.0-0"
+keywords:
+  - looking-glass
+  - network
+  - diagnostics
+maintainers:
+  - name: GeiseIT

@@ -1,0 +1,44 @@
+{{- if .Values.tests.enabled }}
+{{- $api := include "lg.componentName" (dict "root" . "component" "api") }}
+{{- $web := include "lg.componentName" (dict "root" . "component" "web") }}
+{{- $ctx := dict "cfg" .Values.tests "root" . }}
+apiVersion: v1
+kind: Pod
+metadata:
+  name: {{ include "lg.fullname" . }}-test
+  labels:
+    helm.sh/chart: {{ include "lg.chart" . }}
+    app.kubernetes.io/name: {{ include "lg.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: test
+  annotations:
+    helm.sh/hook: test
+    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+spec:
+  restartPolicy: Never
+  automountServiceAccountToken: false
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 10001
+    runAsGroup: 10001
+    seccompProfile:
+      type: RuntimeDefault
+  containers:
+    - name: curl
+      image: {{ include "lg.image" $ctx | quote }}
+      imagePullPolicy: {{ .Values.tests.image.pullPolicy }}
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]
+      command: [sh, -ec]
+      args:
+        - |
+          curl -fsS --max-time 10 http://{{ $web }}:{{ .Values.ports.http }}/healthz
+          curl -fsS --max-time 10 http://{{ $api }}:{{ .Values.ports.http }}/health/ready
+          curl -fsS --max-time 10 http://{{ $api }}:{{ .Values.ports.http }}/api/v1/status
+      resources:
+        requests: {cpu: 10m, memory: 16Mi}
+        limits: {cpu: 100m, memory: 64Mi}
+{{- end }}

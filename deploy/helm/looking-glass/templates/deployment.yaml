@@ -1,0 +1,167 @@
+{{- range $c := list "web" "api" "diagnostics" }}
+{{- $cfg := index $.Values $c }}
+{{- $ctx := dict "root" $ "component" $c "cfg" $cfg }}
+{{- $name := include "lg.componentName" $ctx }}
+{{- $secretName := include "lg.secretName" $ctx }}
+{{- $psc := deepCopy $cfg.podSecurityContext }}
+{{- $csc := deepCopy $cfg.containerSecurityContext }}
+{{- if eq $c "diagnostics" }}
+{{- if $cfg.icmp.pingGroupRange }}
+{{- $_ := set $psc "sysctls" (list (dict "name" "net.ipv4.ping_group_range" "value" $cfg.icmp.pingGroupRange)) }}
+{{- end }}
+{{- if $cfg.netRawFallback.enabled }}
+{{- $_ := set $csc "capabilities" (dict "drop" (list "ALL") "add" (list "NET_RAW")) }}
+{{- end }}
+{{- end }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "lg.labels" $ctx | nindent 4 }}
+spec:
+  {{- if not $cfg.autoscaling.enabled }}
+  replicas: {{ $cfg.replicaCount }}
+  {{- end }}
+  revisionHistoryLimit: {{ $.Values.revisionHistoryLimit }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 25%
+  selector:
+    matchLabels:
+      {{- include "lg.selectorLabels" $ctx | nindent 6 }}
+  template:
+    metadata:
+      annotations:
+        checksum/config: {{ include "lg.configData" $ctx | sha256sum }}
+        {{- if and (ne $c "web") $cfg.secretEnv (not $cfg.existingSecret) }}
+        checksum/secret: {{ toYaml $cfg.secretEnv | sha256sum }}
+        {{- end }}
+        {{- with $cfg.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      labels:
+        {{- include "lg.labels" $ctx | nindent 8 }}
+        {{- with $cfg.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ $name }}
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      {{- with $cfg.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $cfg.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      securityContext:
+        {{- toYaml $psc | nindent 8 }}
+      terminationGracePeriodSeconds: {{ $cfg.terminationGracePeriodSeconds }}
+      containers:
+        - name: {{ $c }}
+          image: {{ include "lg.image" $ctx | quote }}
+          imagePullPolicy: {{ $cfg.image.pullPolicy }}
+          securityContext:
+            {{- toYaml $csc | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: {{ $.Values.ports.http }}
+              protocol: TCP
+            {{- if ne $c "web" }}
+            - name: metrics
+              containerPort: {{ $.Values.ports.metrics }}
+              protocol: TCP
+            {{- end }}
+          envFrom:
+            - configMapRef:
+                name: {{ $name }}
+            {{- if $secretName }}
+            - secretRef:
+                name: {{ $secretName }}
+            {{- end }}
+          {{- with $cfg.extraEnv }}
+          env:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          startupProbe:
+            httpGet:
+              path: {{ $cfg.probes.livenessPath }}
+              port: http
+            initialDelaySeconds: {{ $cfg.probes.initialDelaySeconds.startup }}
+            {{- toYaml $.Values.probeDefaults.startup | nindent 12 }}
+          readinessProbe:
+            httpGet:
+              path: {{ $cfg.probes.readinessPath }}
+              port: http
+            initialDelaySeconds: {{ $cfg.probes.initialDelaySeconds.readiness }}
+            {{- toYaml $.Values.probeDefaults.readiness | nindent 12 }}
+          livenessProbe:
+            httpGet:
+              path: {{ $cfg.probes.livenessPath }}
+              port: http
+            initialDelaySeconds: {{ $cfg.probes.initialDelaySeconds.liveness }}
+            {{- toYaml $.Values.probeDefaults.liveness | nindent 12 }}
+          resources:
+            {{- toYaml $cfg.resources | nindent 12 }}
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+            {{- range $cfg.extraEmptyDirs }}
+            - name: {{ .name }}
+              mountPath: {{ .mountPath }}
+            {{- end }}
+            {{- with $cfg.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir:
+            sizeLimit: {{ $cfg.tmpSizeLimit }}
+        {{- range $cfg.extraEmptyDirs }}
+        - name: {{ .name }}
+          emptyDir:
+            sizeLimit: {{ .sizeLimit }}
+        {{- end }}
+        {{- with $cfg.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with $cfg.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $cfg.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- if $cfg.affinity }}
+      affinity:
+        {{- toYaml $cfg.affinity | nindent 8 }}
+      {{- else if $.Values.scheduling.podAntiAffinity.enabled }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    {{- include "lg.selectorLabels" $ctx | nindent 20 }}
+      {{- end }}
+      {{- if $.Values.scheduling.topologySpread.enabled }}
+      topologySpreadConstraints:
+        - maxSkew: {{ $.Values.scheduling.topologySpread.maxSkew }}
+          topologyKey: {{ $.Values.scheduling.topologySpread.topologyKey }}
+          whenUnsatisfiable: {{ $.Values.scheduling.topologySpread.whenUnsatisfiable }}
+          labelSelector:
+            matchLabels:
+              {{- include "lg.selectorLabels" $ctx | nindent 14 }}
+      {{- end }}
+{{- end }}

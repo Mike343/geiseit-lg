@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "GeiseIT.LookingGlass.Diagnostics": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:51201;http://localhost:51203"
+    }
+  }
+}

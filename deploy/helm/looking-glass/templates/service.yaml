@@ -1,0 +1,30 @@
+{{- range $c := list "web" "api" "diagnostics" }}
+{{- $cfg := index $.Values $c }}
+{{- $ctx := dict "root" $ "component" $c }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "lg.componentName" $ctx }}
+  labels:
+    {{- include "lg.labels" $ctx | nindent 4 }}
+  {{- with $cfg.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ $cfg.service.type }}
+  selector:
+    {{- include "lg.selectorLabels" $ctx | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ $.Values.ports.http }}
+      targetPort: http
+      protocol: TCP
+    {{- if ne $c "web" }}
+    - name: metrics
+      port: {{ $.Values.ports.metrics }}
+      targetPort: metrics
+      protocol: TCP
+    {{- end }}
+{{- end }}

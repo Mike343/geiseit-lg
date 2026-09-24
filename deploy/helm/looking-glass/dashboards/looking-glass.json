@@ -1,0 +1,279 @@
+{
+ "uid": "looking-glass",
+ "title": "GeiseIT Looking Glass",
+ "tags": [
+  "looking-glass"
+ ],
+ "schemaVersion": 39,
+ "version": 1,
+ "editable": true,
+ "refresh": "30s",
+ "time": {
+  "from": "now-6h",
+  "to": "now"
+ },
+ "timezone": "browser",
+ "templating": {
+  "list": [
+   {
+    "name": "datasource",
+    "type": "datasource",
+    "query": "prometheus",
+    "label": "Data source"
+   },
+   {
+    "name": "namespace",
+    "type": "query",
+    "datasource": {
+     "type": "prometheus",
+     "uid": "${datasource}"
+    },
+    "query": "label_values(looking_glass_requests_total, namespace)",
+    "refresh": 2,
+    "label": "Namespace",
+    "current": {}
+   }
+  ]
+ },
+ "panels": [
+  {
+   "id": 1,
+   "title": "Targets up",
+   "type": "stat",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short"
+    },
+    "overrides": []
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum(up{namespace=\"$namespace\",pod=~\".*-(api|diagnostics)-.*\"})",
+     "legendFormat": "up"
+    }
+   ]
+  },
+  {
+   "id": 2,
+   "title": "Active diagnostics",
+   "type": "stat",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "x": 4,
+    "y": 0,
+    "w": 4,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short"
+    },
+    "overrides": []
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum(looking_glass_diagnostics_active{namespace=\"$namespace\"})",
+     "legendFormat": "active"
+    }
+   ]
+  },
+  {
+   "id": 3,
+   "title": "Request rate",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "x": 8,
+    "y": 0,
+    "w": 8,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "reqps"
+    },
+    "overrides": []
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum(rate(looking_glass_requests_total{namespace=\"$namespace\"}[5m]))",
+     "legendFormat": "requests/s"
+    }
+   ]
+  },
+  {
+   "id": 4,
+   "title": "Failure ratio",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "x": 16,
+    "y": 0,
+    "w": 8,
+    "h": 4
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percentunit"
+    },
+    "overrides": []
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum(rate(looking_glass_requests_failed_total{namespace=\"$namespace\"}[5m])) / clamp_min(sum(rate(looking_glass_requests_total{namespace=\"$namespace\"}[5m])), 0.001)",
+     "legendFormat": "failed"
+    }
+   ]
+  },
+  {
+   "id": 5,
+   "title": "Request duration",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 4,
+    "w": 12,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s"
+    },
+    "overrides": []
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "histogram_quantile(0.50, sum by (le) (rate(looking_glass_request_duration_seconds_bucket{namespace=\"$namespace\"}[5m])))",
+     "legendFormat": "p50"
+    },
+    {
+     "refId": "B",
+     "expr": "histogram_quantile(0.95, sum by (le) (rate(looking_glass_request_duration_seconds_bucket{namespace=\"$namespace\"}[5m])))",
+     "legendFormat": "p95"
+    },
+    {
+     "refId": "C",
+     "expr": "histogram_quantile(0.99, sum by (le) (rate(looking_glass_request_duration_seconds_bucket{namespace=\"$namespace\"}[5m])))",
+     "legendFormat": "p99"
+    }
+   ]
+  },
+  {
+   "id": 6,
+   "title": "Diagnostics active and rejected",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 4,
+    "w": 12,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "short"
+    },
+    "overrides": []
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "sum by (pod) (looking_glass_diagnostics_active{namespace=\"$namespace\"})",
+     "legendFormat": "active {{pod}}"
+    },
+    {
+     "refId": "B",
+     "expr": "sum(rate(looking_glass_diagnostics_rejected_total{namespace=\"$namespace\"}[5m]))",
+     "legendFormat": "rejected/s"
+    }
+   ]
+  },
+  {
+   "id": 7,
+   "title": "Packet loss",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "x": 0,
+    "y": 12,
+    "w": 12,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "percent"
+    },
+    "overrides": []
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "avg(looking_glass_packet_loss{namespace=\"$namespace\"})",
+     "legendFormat": "avg loss"
+    }
+   ]
+  },
+  {
+   "id": 8,
+   "title": "Latency",
+   "type": "timeseries",
+   "datasource": {
+    "type": "prometheus",
+    "uid": "${datasource}"
+   },
+   "gridPos": {
+    "x": 12,
+    "y": 12,
+    "w": 12,
+    "h": 8
+   },
+   "fieldConfig": {
+    "defaults": {
+     "unit": "s"
+    },
+    "overrides": []
+   },
+   "targets": [
+    {
+     "refId": "A",
+     "expr": "avg(looking_glass_latency_seconds{namespace=\"$namespace\"})",
+     "legendFormat": "avg latency"
+    }
+   ]
+  }
+ ]
+}

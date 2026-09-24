@@ -1,0 +1,58 @@
+lookingGlass:
+  location: GeiseIT Network
+  hostname: lg.geiseit.com
+
+web:
+  replicaCount: 2
+  imagePullSecrets:
+    - name: geiseit-registry
+  image:
+    tag: v1.0.0
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 4
+
+api:
+  replicaCount: 2
+  imagePullSecrets:
+    - name: geiseit-registry
+  image:
+    tag: v1.0.0
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 6
+
+diagnostics:
+  replicaCount: 2
+  imagePullSecrets:
+    - name: geiseit-registry
+  image:
+    tag: v1.0.0
+  autoscaling:
+    minReplicas: 2
+    maxReplicas: 6
+
+ingress:
+  host: lg.geiseit.com
+  tls:
+    secretName: looking-glass-tls
+  certManager:
+    clusterIssuer: letsencrypt-production
+
+quota:
+  enabled: true
+
+limitRange:
+  enabled: true
+
+monitoring:
+  serviceMonitor:
+    enabled: true
+    labels:
+      release: kube-prometheus-stack
+  prometheusRule:
+    enabled: true
+    labels:
+      release: kube-prometheus-stack
+  grafanaDashboard:
+    enabled: true
