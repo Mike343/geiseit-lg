@@ -198,3 +198,31 @@ Until a BGP provider is configured every one of these returns `503` with `code: 
 The diagnostics service exposes the same request/response shapes at `/internal/v1/{ping,traceroute,mtr,dns}`, plus
 `GET /internal/v1/connectivity` (performance snapshot, `PerformanceResponse`) and `GET /internal/v1/egress` (`{ "ipv4": "…", "ipv6": "…" }`).
 It is reachable only from the API pods (NetworkPolicy) and re-validates every destination after DNS resolution.
+
+## Traffic
+
+`GET /api/v1/traffic?range=1h` – bandwidth graphs. `range` is `1h` (default, 30 s step), `6h` (2 min) or `24h` (5 min); anything else is `400 validation_failed`.
+Values are **bits per second**. `rx` is traffic received (inbound), `tx` is traffic sent (outbound). Series may contain `null` values for gaps.
+Node labels are anonymous (`Node 1`…`Node N`, stable order); host names, addresses and interface names are never returned.
+
+```json
+{
+  "generatedAt": "…", "range": "1h", "stepSeconds": 30,
+  "current": {
+    "clusterRxBps": 1200000, "clusterTxBps": 2400000,
+    "internetRxBps": 800000, "internetTxBps": 300000,
+    "webInBps": 90000, "webOutBps": 1500000
+  },
+  "cluster":  { "rx": [{ "at": "…", "bitsPerSecond": 1200000 }], "tx": [ … ] },
+  "nodes": [
+    { "label": "Node 1", "capacityBitsPerSecond": 10000000000, "rx": [ … ], "tx": [ … ] }
+  ],
+  "internet": { "available": true,  "rx": [ … ], "tx": [ … ] },
+  "web":      { "available": true,  "in": [ … ], "out": [ … ] }
+}
+```
+
+- `cluster` is the sum of all nodes' network interfaces (all traffic on the nodes, internal and external).
+- `internet` is the site's internet link (OPNsense WAN counters). `available: false` (with empty series and `null` current values) when that source is not connected.
+- `web` is HTTP traffic served through the ingress (all sites behind it): `in` = request bytes, `out` = response bytes. `available: false` when the ingress metrics are not scraped.
+- When Prometheus itself is not configured or unreachable the endpoint returns `503 service_unavailable`; the UI must show a friendly empty state and not treat the rest of the Looking Glass as broken.

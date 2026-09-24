@@ -7,17 +7,20 @@ web:
   imagePullSecrets:
     - name: geiseit-registry
   image:
-    tag: v1.0.1
+    tag: v1.1.0
   autoscaling:
     minReplicas: 2
     maxReplicas: 4
 
 api:
+  config:
+    traffic:
+      prometheusUrl: http://kube-prometheus-stack-prometheus.monitoring:9090
   replicaCount: 2
   imagePullSecrets:
     - name: geiseit-registry
   image:
-    tag: v1.0.0
+    tag: v1.1.0
   autoscaling:
     minReplicas: 2
     maxReplicas: 6
@@ -55,4 +58,8 @@ monitoring:
     labels:
       release: kube-prometheus-stack
   grafanaDashboard:
+    enabled: true
+
+networkPolicy:
+  prometheusEgress:
     enabled: true

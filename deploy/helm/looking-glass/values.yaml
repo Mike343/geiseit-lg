@@ -186,6 +186,13 @@ api:
       enabled: true
       retentionMinutes: 60
       maxItems: 10
+    traffic:
+      prometheusUrl: ""
+      timeoutSeconds: 5
+      nodeJob: node-exporter
+      nodeDeviceRegex: "(eno|ens|enp|eth)[0-9a-z]*"
+      wanJob: opnsense
+      wanDevice: ""
     extra: {}
   existingSecret: ""
   secretEnv: {}
@@ -328,6 +335,13 @@ networkPolicy:
     namespaceSelector: {}
     podSelector: {}
     port: 4317
+  prometheusEgress:
+    enabled: false
+    namespaceSelector:
+      kubernetes.io/metadata.name: monitoring
+    podSelector:
+      app.kubernetes.io/name: prometheus
+    port: 9090
   diagnostics:
     allowClusterDns: false
     # Mirrors the application's SSRF blocklist so a compromised process still cannot reach the cluster, nodes or metadata services.

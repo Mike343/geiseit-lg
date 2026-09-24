@@ -57,6 +57,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
 {
     public FakeDiagnosticsClient Diagnostics { get; } = new();
 
+    public FakePrometheusClient Prometheus { get; } = new();
+
     public Dictionary<string, string?> Settings { get; } = [];
 
     public ApiFactory WithSettings(params (string Key, string Value)[] settings)
@@ -80,6 +82,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>
         {
             services.RemoveAll<IDiagnosticsClient>();
             services.AddSingleton<IDiagnosticsClient>(Diagnostics);
+            services.RemoveAll<IPrometheusClient>();
+            services.AddSingleton<IPrometheusClient>(Prometheus);
         });
     }
 }

@@ -1,0 +1,27 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: ScrapeConfig
+metadata:
+  name: ingress-nginx
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  jobName: ingress-nginx
+  scrapeInterval: 30s
+  kubernetesSDConfigs:
+    - role: Pod
+      namespaces:
+        names:
+          - ingress-nginx
+  relabelings:
+    - action: keep
+      sourceLabels: [__meta_kubernetes_pod_label_app_kubernetes_io_name, __meta_kubernetes_pod_label_app_kubernetes_io_component]
+      separator: ";"
+      regex: ingress-nginx;controller
+    - action: replace
+      sourceLabels: [__meta_kubernetes_pod_ip]
+      targetLabel: __address__
+      replacement: "$1:10254"
+    - action: replace
+      sourceLabels: [__meta_kubernetes_pod_name]
+      targetLabel: pod

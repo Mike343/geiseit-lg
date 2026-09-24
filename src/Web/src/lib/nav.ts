@@ -1,5 +1,6 @@
 import {
   Activity,
+  ArrowDownUp,
   Boxes,
   Gauge,
   Globe,
@@ -53,6 +54,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "Network",
     items: [
       { label: "Network Information", href: "/network", icon: Server, description: "Where this Looking Glass lives" },
+      { label: "Traffic", href: "/network/traffic", icon: ArrowDownUp, description: "Bandwidth across the cluster, internet link and web" },
       { label: "Looking Glass Status", href: "/network/status", icon: Gauge, description: "Connectivity and latency over time" }
     ]
   },

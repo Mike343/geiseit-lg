@@ -268,3 +268,55 @@ public static class ProblemCodes
     public const string Cancelled = "cancelled";
     public const string Internal = "internal_error";
 }
+
+public sealed record TrafficPoint(DateTimeOffset At, double? BitsPerSecond);
+
+public sealed record DirectionalTraffic
+{
+    public IReadOnlyList<TrafficPoint> Rx { get; init; } = [];
+    public IReadOnlyList<TrafficPoint> Tx { get; init; } = [];
+}
+
+public sealed record NodeTraffic
+{
+    public string Label { get; init; } = string.Empty;
+    public double? CapacityBitsPerSecond { get; init; }
+    public IReadOnlyList<TrafficPoint> Rx { get; init; } = [];
+    public IReadOnlyList<TrafficPoint> Tx { get; init; } = [];
+}
+
+public sealed record InternetTraffic
+{
+    public bool Available { get; init; }
+    public IReadOnlyList<TrafficPoint> Rx { get; init; } = [];
+    public IReadOnlyList<TrafficPoint> Tx { get; init; } = [];
+}
+
+public sealed record WebTraffic
+{
+    public bool Available { get; init; }
+    public IReadOnlyList<TrafficPoint> In { get; init; } = [];
+    public IReadOnlyList<TrafficPoint> Out { get; init; } = [];
+}
+
+public sealed record TrafficCurrent
+{
+    public double? ClusterRxBps { get; init; }
+    public double? ClusterTxBps { get; init; }
+    public double? InternetRxBps { get; init; }
+    public double? InternetTxBps { get; init; }
+    public double? WebInBps { get; init; }
+    public double? WebOutBps { get; init; }
+}
+
+public sealed record TrafficResponse
+{
+    public DateTimeOffset GeneratedAt { get; init; }
+    public string Range { get; init; } = "1h";
+    public int StepSeconds { get; init; }
+    public TrafficCurrent Current { get; init; } = new();
+    public DirectionalTraffic Cluster { get; init; } = new();
+    public IReadOnlyList<NodeTraffic> Nodes { get; init; } = [];
+    public InternetTraffic Internet { get; init; } = new();
+    public WebTraffic Web { get; init; } = new();
+}

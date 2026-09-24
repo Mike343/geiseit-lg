@@ -232,6 +232,17 @@
                     "maxItems": {"type": "integer", "minimum": 1}
                   }
                 },
+                "traffic": {
+                  "type": "object",
+                  "properties": {
+                    "prometheusUrl": {"type": "string"},
+                    "timeoutSeconds": {"type": "integer", "minimum": 1, "maximum": 30},
+                    "nodeJob": {"type": "string", "pattern": "^[A-Za-z0-9_.-]{1,64}$"},
+                    "nodeDeviceRegex": {"type": "string", "pattern": "^[A-Za-z0-9_|()\\[\\]*+?.^$-]{1,128}$"},
+                    "wanJob": {"type": "string", "pattern": "^[A-Za-z0-9_.-]{1,64}$"},
+                    "wanDevice": {"type": "string", "pattern": "^([A-Za-z0-9_.-]{1,32})?$"}
+                  }
+                },
                 "extra": {"type": "object"}
               }
             }
@@ -312,6 +323,15 @@
           }
         },
         "otlpEgress": {
+          "type": "object",
+          "properties": {
+            "enabled": {"type": "boolean"},
+            "namespaceSelector": {"$ref": "#/definitions/stringMap"},
+            "podSelector": {"$ref": "#/definitions/stringMap"},
+            "port": {"type": "integer", "minimum": 1, "maximum": 65535}
+          }
+        },
+        "prometheusEgress": {
           "type": "object",
           "properties": {
             "enabled": {"type": "boolean"},

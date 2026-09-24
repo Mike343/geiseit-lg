@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { settle, type LoadResult } from "@/lib/api/result";
-import type { ActivityResponse, NetworkInfo, PerformanceResponse, StatusResponse } from "@/lib/api/types";
+import type { ActivityResponse, NetworkInfo, PerformanceResponse, StatusResponse, TrafficRange } from "@/lib/api/types";
 import { createServerApi } from "./api";
 
 export interface DashboardData {
@@ -14,6 +14,8 @@ export const loadStatus = cache(() => settle(createServerApi().getStatus()));
 export const loadNetwork = cache(() => settle(createServerApi().getNetwork()));
 export const loadPerformance = cache(() => settle(createServerApi().getPerformance()));
 export const loadActivity = cache(() => settle(createServerApi().getActivity()));
+
+export const loadTraffic = cache((range: TrafficRange) => settle(createServerApi().getTraffic(range)));
 
 export async function loadDashboard(): Promise<DashboardData> {
   const [status, network, performance, activity] = await Promise.all([

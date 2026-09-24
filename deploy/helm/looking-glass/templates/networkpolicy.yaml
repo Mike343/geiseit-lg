@@ -111,6 +111,18 @@ spec:
         - protocol: TCP
           port: {{ $np.otlpEgress.port }}
     {{- end }}
+    {{- if $np.prometheusEgress.enabled }}
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              {{- toYaml $np.prometheusEgress.namespaceSelector | nindent 14 }}
+          podSelector:
+            matchLabels:
+              {{- toYaml $np.prometheusEgress.podSelector | nindent 14 }}
+      ports:
+        - protocol: TCP
+          port: {{ $np.prometheusEgress.port }}
+    {{- end }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy

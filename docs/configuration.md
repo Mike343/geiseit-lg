@@ -56,6 +56,12 @@ The images set `ASPNETCORE_URLS=http://+:8080;http://+:9090`. When running outsi
 | `Activity__RetentionMinutes` | `60` | How long activity entries are kept |
 | `Activity__MaxItems` | `10` | Maximum entries kept |
 | `Bgp__Enabled` | `false` | Reserved. BGP endpoints answer `bgp_unavailable` until a provider exists |
+| `Prometheus__BaseUrl` | – | Base URL of Prometheus (`http://kube-prometheus-stack-prometheus.monitoring:9090`). Enables `GET /api/v1/traffic`; unset means the Traffic page reports "unavailable" |
+| `Prometheus__TimeoutSeconds` | `5` | Query timeout |
+| `Traffic__NodeJob` | `node-exporter` | Prometheus `job` label of the node exporters |
+| `Traffic__NodeDeviceRegex` | `(eno\|ens\|enp\|eth)[0-9a-z]*` | Which interfaces count as the nodes' physical network (restricted character set; it is placed inside a fixed PromQL query) |
+| `Traffic__WanJob` | `opnsense` | Prometheus `job` label of the firewall's node exporter |
+| `Traffic__WanDevice` | – | Interface name of the WAN link on the firewall (for example `igb0`). Unset means the internet panels report "not connected" |
 | `Management__Port` | `9090` | Port that serves `/metrics` |
 | `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`, … | – | Standard OpenTelemetry variables; tracing is exported only when the endpoint is set |
 

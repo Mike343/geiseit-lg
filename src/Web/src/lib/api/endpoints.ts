@@ -8,7 +8,9 @@ import type {
   DiagnosticResult,
   NetworkInfo,
   PerformanceResponse,
-  StatusResponse
+  StatusResponse,
+  TrafficRange,
+  TrafficResponse
 } from "./types";
 
 const DIAGNOSTIC_TIMEOUT_MS = 120_000;
@@ -28,6 +30,7 @@ export function createEndpoints(http: AxiosInstance) {
     getStatus: (signal?: AbortSignal) => get<StatusResponse>("/status", signal),
     getNetwork: (signal?: AbortSignal) => get<NetworkInfo>("/network", signal),
     getPerformance: (signal?: AbortSignal) => get<PerformanceResponse>("/network/performance", signal),
+    getTraffic: (range: TrafficRange, signal?: AbortSignal) => get<TrafficResponse>(`/traffic?range=${range}`, signal),
     getActivity: (signal?: AbortSignal) => get<ActivityResponse>("/activity", signal),
     getBgp: (path: string, signal?: AbortSignal) => get<BgpPayload>(`/bgp/${path}`, signal),
     runDiagnostic: (kind: DiagnosticKind, body: DiagnosticRequest | DestinationRequest, signal?: AbortSignal) =>

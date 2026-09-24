@@ -99,6 +99,14 @@ app.kubernetes.io/component: {{ .component }}
 {{- $_ := set $d "Activity__RetentionMinutes" (toString $c.activity.retentionMinutes) -}}
 {{- $_ := set $d "Activity__MaxItems" (toString $c.activity.maxItems) -}}
 {{- $_ := set $d "Bgp__Enabled" (toString $v.bgp.enabled) -}}
+{{- if $c.traffic.prometheusUrl }}
+{{- $_ := set $d "Prometheus__BaseUrl" $c.traffic.prometheusUrl -}}
+{{- $_ := set $d "Prometheus__TimeoutSeconds" (toString $c.traffic.timeoutSeconds) -}}
+{{- $_ := set $d "Traffic__NodeJob" $c.traffic.nodeJob -}}
+{{- $_ := set $d "Traffic__NodeDeviceRegex" $c.traffic.nodeDeviceRegex -}}
+{{- $_ := set $d "Traffic__WanJob" $c.traffic.wanJob -}}
+{{- if $c.traffic.wanDevice }}{{ $_ := set $d "Traffic__WanDevice" $c.traffic.wanDevice }}{{ end -}}
+{{- end }}
 {{- $_ := set $d "OTEL_SERVICE_NAME" "looking-glass-api" -}}
 {{- if $v.otel.endpoint }}{{ $_ := set $d "OTEL_EXPORTER_OTLP_ENDPOINT" $v.otel.endpoint }}{{ end -}}
 {{- range $k, $val := $c.extra }}{{ $_ := set $d $k (toString $val) }}{{ end -}}

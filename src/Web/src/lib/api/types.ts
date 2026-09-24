@@ -167,3 +167,37 @@ export interface DnsResult extends DiagnosticBase {
 export type DiagnosticResult = PingResult | TracerouteResult | MtrResult | DnsResult;
 
 export type BgpPayload = unknown;
+
+export type TrafficRange = "1h" | "6h" | "24h";
+
+export interface TrafficPoint {
+  at: string;
+  bitsPerSecond: number | null;
+}
+
+export interface TrafficCurrent {
+  clusterRxBps: number | null;
+  clusterTxBps: number | null;
+  internetRxBps: number | null;
+  internetTxBps: number | null;
+  webInBps: number | null;
+  webOutBps: number | null;
+}
+
+export interface TrafficNode {
+  label: string;
+  capacityBitsPerSecond: number | null;
+  rx: TrafficPoint[];
+  tx: TrafficPoint[];
+}
+
+export interface TrafficResponse {
+  generatedAt: string;
+  range: TrafficRange;
+  stepSeconds: number;
+  current: TrafficCurrent;
+  cluster: { rx: TrafficPoint[]; tx: TrafficPoint[] };
+  nodes: TrafficNode[];
+  internet: { available: boolean; rx: TrafficPoint[]; tx: TrafficPoint[] };
+  web: { available: boolean; in: TrafficPoint[]; out: TrafficPoint[] };
+}

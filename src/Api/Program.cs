@@ -27,6 +27,8 @@ builder.Services.AddOptions<NetworkOptions>().BindConfiguration(NetworkOptions.S
 builder.Services.AddOptions<SecurityOptions>().BindConfiguration(SecurityOptions.Section);
 builder.Services.AddOptions<ActivityOptions>().BindConfiguration(ActivityOptions.Section).ValidateDataAnnotations().ValidateOnStart();
 builder.Services.AddOptions<BgpOptions>().BindConfiguration(BgpOptions.Section);
+builder.Services.AddOptions<PrometheusOptions>().BindConfiguration(PrometheusOptions.Section).ValidateDataAnnotations().ValidateOnStart();
+builder.Services.AddOptions<TrafficOptions>().BindConfiguration(TrafficOptions.Section).ValidateDataAnnotations().ValidateOnStart();
 
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton(sp =>
@@ -41,6 +43,7 @@ builder.Services.AddSingleton<ActivityLog>();
 builder.Services.AddSingleton<DiagnosticRelay>();
 builder.Services.AddSingleton<NetworkInfoService>();
 builder.Services.AddSingleton<StatusService>();
+builder.Services.AddSingleton<TrafficService>();
 builder.Services.AddSingleton<IBgpProvider, DisabledBgpProvider>();
 builder.Services.AddSingleton<TtlCache<PerformanceResponse>>(sp => new TtlCache<PerformanceResponse>(TimeSpan.FromSeconds(10), sp.GetRequiredService<TimeProvider>()));
 
@@ -49,6 +52,17 @@ builder.Services.AddHttpClient<IDiagnosticsClient, DiagnosticsClient>((sp, clien
     var settings = sp.GetRequiredService<IOptions<DiagnosticsClientOptions>>().Value;
     client.BaseAddress = new Uri(settings.BaseUrl.TrimEnd('/') + "/");
     client.Timeout = TimeSpan.FromSeconds(settings.TimeoutSeconds + 10);
+});
+
+builder.Services.AddHttpClient<IPrometheusClient, PrometheusClient>((sp, client) =>
+{
+    var settings = sp.GetRequiredService<IOptions<PrometheusOptions>>().Value;
+    if (!string.IsNullOrWhiteSpace(settings.BaseUrl))
+    {
+        client.BaseAddress = new Uri(settings.BaseUrl.TrimEnd('/') + "/");
+    }
+
+    client.Timeout = TimeSpan.FromSeconds(settings.TimeoutSeconds);
 });
 
 builder.Services.AddLookingGlassRateLimiting();
@@ -113,6 +127,16 @@ info.MapGet("/network", async (NetworkInfoService service, HttpContext context) 
     Results.Json(await service.GetAsync(context.RequestAborted), LookingGlassJson.Options));
 info.MapGet("/network/performance", async (TtlCache<PerformanceResponse> cache, IDiagnosticsClient client, HttpContext context) =>
     Results.Json(await cache.GetAsync(client.GetPerformanceAsync, context.RequestAborted), LookingGlassJson.Options));
+info.MapGet("/traffic", async (string? range, TrafficService service, HttpContext context) =>
+{
+    var selected = string.IsNullOrEmpty(range) ? "1h" : range;
+    if (!TrafficService.IsValidRange(selected))
+    {
+        throw LookingGlassException.Validation("The range must be 1h, 6h or 24h.");
+    }
+
+    return Results.Json(await service.GetAsync(selected, context.RequestAborted), LookingGlassJson.Options);
+});
 info.MapGet("/activity", (ActivityLog log) =>
     Results.Json(log.Snapshot(), LookingGlassJson.Options));
 

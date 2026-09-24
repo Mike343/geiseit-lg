@@ -95,3 +95,30 @@ public sealed class BgpOptions
 
     public bool Enabled { get; set; }
 }
+
+public sealed class PrometheusOptions
+{
+    public const string Section = "Prometheus";
+
+    public string? BaseUrl { get; set; }
+
+    [Range(1, 30)]
+    public int TimeoutSeconds { get; set; } = 5;
+}
+
+public sealed class TrafficOptions
+{
+    public const string Section = "Traffic";
+
+    [RegularExpression(@"^[A-Za-z0-9_.-]{1,64}$")]
+    public string NodeJob { get; set; } = "node-exporter";
+
+    [RegularExpression(@"^[A-Za-z0-9_|()\[\]*+?.^$-]{1,128}$")]
+    public string NodeDeviceRegex { get; set; } = "(eno|ens|enp|eth)[0-9a-z]*";
+
+    [RegularExpression(@"^[A-Za-z0-9_.-]{1,64}$")]
+    public string WanJob { get; set; } = "opnsense";
+
+    [RegularExpression(@"^([A-Za-z0-9_.-]{1,32})?$")]
+    public string? WanDevice { get; set; }
+}
