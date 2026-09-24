@@ -7,7 +7,7 @@ web:
   imagePullSecrets:
     - name: geiseit-registry
   image:
-    tag: v1.0.0
+    tag: v1.0.1
   autoscaling:
     minReplicas: 2
     maxReplicas: 4
