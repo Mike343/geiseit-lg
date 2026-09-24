@@ -1,16 +1,16 @@
-FROM node:24.21-alpine3.24 AS deps
+FROM node:26.9-alpine3.24 AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 
-FROM node:24.21-alpine3.24 AS build
+FROM node:26.9-alpine3.24 AS build
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npm run build
 
-FROM node:24.21-alpine3.24 AS runtime
+FROM node:26.9-alpine3.24 AS runtime
 WORKDIR /app
 ENV NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
