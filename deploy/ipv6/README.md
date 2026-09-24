@@ -42,3 +42,16 @@ curl -s https://lg.geiseit.com/api/v1/status
 ```
 
 Existing pods stay IPv4-only until restarted.
+
+## Ingress over IPv6
+
+The ingress controller service is dual-stack and uses `externalTrafficPolicy: Local` so the controller sees real client addresses.
+
+1. `metallb-first-pool-ipv6.json`: add the IPv6 load balancer address to the **same** MetalLB pool as the IPv4 one
+   (`kubectl -n metallb-system patch ipaddresspool <pool> --type json --patch-file metallb-first-pool-ipv6.json`).
+   MetalLB refuses a dual-stack service whose two addresses come from different pools ("is not allowed in config"), and the service then loses its
+   address until the annotation is corrected.
+2. `ingress-external-traffic-local.yaml` and `ingress-dual-stack.yaml`: patch the ingress service. Restart the controller pods first so they have IPv6 addresses.
+3. On the firewall, forward TCP 80/443 on the public IPv6 address to the load balancer's IPv6 address, then add the AAAA record.
+
+Test a change like this with a throwaway `LoadBalancer` service (same annotation, no pods) before patching the real one.
