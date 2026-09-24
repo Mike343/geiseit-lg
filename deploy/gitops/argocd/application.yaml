@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: looking-glass
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/geiseit/geiseit-network-looking-glass.git
+    targetRevision: main
+    path: deploy/helm/looking-glass
+    helm:
+      releaseName: looking-glass
+      valueFiles:
+        - ../../environments/production/values.yaml
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: network-looking-glass
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+    retry:
+      limit: 3
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

@@ -1,0 +1,43 @@
+lookingGlass:
+  location: GeiseIT Network (development)
+  hostname: lg.dev.geiseit.com
+
+web:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+  pdb:
+    enabled: false
+  resources:
+    requests: {cpu: 50m, memory: 128Mi}
+    limits: {cpu: 300m, memory: 384Mi}
+
+api:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+  pdb:
+    enabled: false
+  resources:
+    requests: {cpu: 50m, memory: 96Mi}
+    limits: {cpu: 300m, memory: 256Mi}
+
+diagnostics:
+  replicaCount: 1
+  autoscaling:
+    enabled: false
+  pdb:
+    enabled: false
+  resources:
+    requests: {cpu: 50m, memory: 96Mi}
+    limits: {cpu: 500m, memory: 256Mi}
+  config:
+    maxConcurrent: 2
+    maxQueued: 8
+
+ingress:
+  host: lg.dev.geiseit.com
+  tls:
+    secretName: looking-glass-dev-tls
+  certManager:
+    clusterIssuer: letsencrypt-staging

@@ -1,0 +1,65 @@
+{{- $crd := .Capabilities.APIVersions.Has "monitoring.coreos.com/v1" }}
+{{- $m := .Values.monitoring }}
+{{- if and $m.serviceMonitor.enabled $crd }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "lg.fullname" . }}
+  namespace: {{ default .Release.Namespace $m.serviceMonitor.namespace }}
+  labels:
+    {{- include "lg.baseLabels" . | nindent 4 }}
+    {{- with $m.serviceMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "lg.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [api, diagnostics]
+  targetLabels:
+    - app.kubernetes.io/component
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: {{ $m.serviceMonitor.interval }}
+      scrapeTimeout: {{ $m.serviceMonitor.scrapeTimeout }}
+{{- end }}
+{{- if and $m.podMonitor.enabled $crd }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "lg.fullname" . }}
+  namespace: {{ default .Release.Namespace $m.podMonitor.namespace }}
+  labels:
+    {{- include "lg.baseLabels" . | nindent 4 }}
+    {{- with $m.podMonitor.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  namespaceSelector:
+    matchNames:
+      - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "lg.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+    matchExpressions:
+      - key: app.kubernetes.io/component
+        operator: In
+        values: [api, diagnostics]
+  podTargetLabels:
+    - app.kubernetes.io/component
+  podMetricsEndpoints:
+    - port: metrics
+      path: /metrics
+      interval: {{ $m.podMonitor.interval }}
+      scrapeTimeout: {{ $m.podMonitor.scrapeTimeout }}
+{{- end }}

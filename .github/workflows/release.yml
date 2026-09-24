@@ -1,0 +1,159 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*.*.*"]
+
+permissions:
+  contents: read
+
+env:
+  REGISTRY: registry.geiseit.com
+
+jobs:
+  meta:
+    runs-on: ubuntu-latest
+    outputs:
+      project: ${{ steps.vars.outputs.project }}
+      sha_tag: ${{ steps.vars.outputs.sha_tag }}
+      version_tag: ${{ steps.vars.outputs.version_tag }}
+    steps:
+      - id: vars
+        run: |
+          set -euo pipefail
+          project=geiseit-lg
+          echo "project=$project" >> "$GITHUB_OUTPUT"
+          echo "sha_tag=git-${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+          version_tag=""
+          if [ "$GITHUB_REF_TYPE" = tag ]; then
+            echo "$GITHUB_REF_NAME" | grep -Eq '^v[0-9]+\.[0-9]+\.[0-9]+$' || { echo "::error::Tag must look like vX.Y.Z"; exit 1; }
+            version_tag=$GITHUB_REF_NAME
+          fi
+          echo "version_tag=$version_tag" >> "$GITHUB_OUTPUT"
+
+  images:
+    needs: meta
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      id-token: write
+      attestations: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - component: web
+            context: src/Web
+            dockerfile: src/Web/Dockerfile
+          - component: api
+            context: .
+            dockerfile: src/Api/Dockerfile
+          - component: diagnostics
+            context: .
+            dockerfile: src/Diagnostics/Dockerfile
+    env:
+      IMAGE: ${{ env.REGISTRY }}/${{ needs.meta.outputs.project }}/${{ matrix.component }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_PASSWORD }}
+
+      - name: Build for scanning
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: scan/${{ matrix.component }}:${{ github.sha }}
+          cache-from: type=gha,scope=${{ matrix.component }}
+          cache-to: type=gha,scope=${{ matrix.component }},mode=max
+
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: scan/${{ matrix.component }}:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Compute tags
+        id: tags
+        run: |
+          tags="${IMAGE}:${{ needs.meta.outputs.sha_tag }}"
+          if [ -n "${{ needs.meta.outputs.version_tag }}" ]; then
+            tags="${tags},${IMAGE}:${{ needs.meta.outputs.version_tag }}"
+          fi
+          echo "tags=$tags" >> "$GITHUB_OUTPUT"
+
+      - name: Push
+        id: push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          sbom: true
+          provenance: mode=max
+          cache-from: type=gha,scope=${{ matrix.component }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.IMAGE }}
+          subject-digest: ${{ steps.push.outputs.digest }}
+          push-to-registry: true
+
+  deploy-development:
+    needs: [meta, images]
+    runs-on: ${{ vars.DEPLOY_RUNNER || 'ubuntu-latest' }}
+    environment:
+      name: development
+      url: https://lg.dev.geiseit.com
+    concurrency:
+      group: deploy-development
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/helm-deploy
+        with:
+          environment: development
+          image-project: ${{ needs.meta.outputs.project }}
+          image-tag: ${{ needs.meta.outputs.sha_tag }}
+          kubeconfig: ${{ secrets.KUBECONFIG_B64 }}
+          values-overlay: ${{ secrets.HELM_VALUES_OVERLAY }}
+          url: https://lg.dev.geiseit.com
+          insecure-tls: "true"
+
+  deploy-production:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [meta, images, deploy-development]
+    runs-on: ${{ vars.DEPLOY_RUNNER || 'ubuntu-latest' }}
+    environment:
+      name: production
+      url: https://lg.geiseit.com
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/helm-deploy
+        with:
+          environment: production
+          image-project: ${{ needs.meta.outputs.project }}
+          image-tag: ${{ needs.meta.outputs.version_tag }}
+          kubeconfig: ${{ secrets.KUBECONFIG_B64 }}
+          values-overlay: ${{ secrets.HELM_VALUES_OVERLAY }}
+          url: https://lg.geiseit.com

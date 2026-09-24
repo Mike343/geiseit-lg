@@ -1,0 +1,107 @@
+fullnameOverride: kube-prometheus-stack
+
+prometheus:
+  prometheusSpec:
+    replicas: 1
+    retention: 15d
+    retentionSize: 16GB
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    probeSelectorNilUsesHelmValues: false
+    resources:
+      requests:
+        cpu: 200m
+        memory: 1Gi
+      limits:
+        cpu: "1"
+        memory: 2Gi
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: ""
+          volumeName: prometheus-monitoring
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+
+alertmanager:
+  alertmanagerSpec:
+    replicas: 1
+    resources:
+      requests:
+        cpu: 20m
+        memory: 64Mi
+      limits:
+        memory: 128Mi
+
+grafana:
+  enabled: true
+  defaultDashboardsTimezone: browser
+  persistence:
+    enabled: false
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+    limits:
+      memory: 384Mi
+  sidecar:
+    dashboards:
+      searchNamespace: ALL
+  grafana.ini:
+    server:
+      root_url: https://grafana.geiseit.com
+    users:
+      allow_sign_up: false
+    auth.anonymous:
+      enabled: false
+    analytics:
+      reporting_enabled: false
+      check_for_updates: false
+  ingress:
+    enabled: true
+    ingressClassName: nginx
+    annotations:
+      cert-manager.io/cluster-issuer: letsencrypt-production
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    hosts:
+      - grafana.geiseit.com
+    tls:
+      - secretName: grafana-tls
+        hosts:
+          - grafana.geiseit.com
+
+kubeControllerManager:
+  enabled: false
+kubeScheduler:
+  enabled: false
+kubeEtcd:
+  enabled: false
+kubeProxy:
+  enabled: false
+
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 32Mi
+    limits:
+      memory: 64Mi
+
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 20m
+      memory: 64Mi
+    limits:
+      memory: 192Mi
+
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 64Mi
+    limits:
+      memory: 256Mi

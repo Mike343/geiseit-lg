@@ -1,0 +1,4 @@
+[
+  { "op": "remove", "path": "/spec/calicoNetwork/nodeAddressAutodetectionV6" },
+  { "op": "remove", "path": "/spec/calicoNetwork/ipPools/1" }
+]

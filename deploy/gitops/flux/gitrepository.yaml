@@ -1,0 +1,13 @@
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: looking-glass
+  namespace: flux-system
+spec:
+  interval: 5m
+  url: https://github.com/geiseit/geiseit-network-looking-glass.git
+  ref:
+    branch: main
+  ignore: |
+    /*
+    !/deploy/

@@ -1,0 +1,19 @@
+[
+  {
+    "op": "add",
+    "path": "/spec/calicoNetwork/ipPools/-",
+    "value": {
+      "name": "default-ipv6-ippool",
+      "cidr": "fd12:3456:789a:2::/64",
+      "blockSize": 122,
+      "encapsulation": "VXLANCrossSubnet",
+      "natOutgoing": "Enabled",
+      "nodeSelector": "all()"
+    }
+  },
+  {
+    "op": "add",
+    "path": "/spec/calicoNetwork/nodeAddressAutodetectionV6",
+    "value": { "cidrs": ["fd12:3456:789a:1::/64"] }
+  }
+]

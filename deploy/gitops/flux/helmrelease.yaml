@@ -1,0 +1,34 @@
+apiVersion: helm.toolkit.fluxcd.io/v2
+kind: HelmRelease
+metadata:
+  name: looking-glass
+  namespace: network-looking-glass
+spec:
+  interval: 10m
+  releaseName: looking-glass
+  targetNamespace: network-looking-glass
+  install:
+    createNamespace: true
+    remediation:
+      retries: 3
+  upgrade:
+    remediation:
+      retries: 3
+      remediateLastFailure: true
+    cleanupOnFail: true
+  test:
+    enable: true
+  chart:
+    spec:
+      chart: ./deploy/helm/looking-glass
+      reconcileStrategy: Revision
+      sourceRef:
+        kind: GitRepository
+        name: looking-glass
+        namespace: flux-system
+      valuesFiles:
+        - deploy/environments/production/values.yaml
+  valuesFrom:
+    - kind: Secret
+      name: looking-glass-values
+      optional: true

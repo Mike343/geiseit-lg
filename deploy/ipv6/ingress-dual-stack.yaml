@@ -1,0 +1,8 @@
+metadata:
+  annotations:
+    metallb.io/loadBalancerIPs: 192.0.2.240,fd12:3456:789a:1::240
+spec:
+  ipFamilyPolicy: PreferDualStack
+  ipFamilies:
+    - IPv4
+    - IPv6

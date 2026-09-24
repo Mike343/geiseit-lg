@@ -1,0 +1,21 @@
+{{- if .Values.namespace.create }}
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ default .Release.Namespace .Values.namespace.name }}
+  labels:
+    {{- include "lg.baseLabels" . | nindent 4 }}
+    pod-security.kubernetes.io/enforce: {{ .Values.namespace.podSecurity.enforce }}
+    pod-security.kubernetes.io/enforce-version: {{ .Values.namespace.podSecurity.version }}
+    pod-security.kubernetes.io/audit: {{ .Values.namespace.podSecurity.audit }}
+    pod-security.kubernetes.io/audit-version: {{ .Values.namespace.podSecurity.version }}
+    pod-security.kubernetes.io/warn: {{ .Values.namespace.podSecurity.warn }}
+    pod-security.kubernetes.io/warn-version: {{ .Values.namespace.podSecurity.version }}
+    {{- with .Values.namespace.labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+  {{- with .Values.namespace.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,89 @@
+name: Helm deploy and verify
+description: Deploys the looking-glass chart with helm, runs the chart tests and the smoke tests
+
+inputs:
+  environment:
+    description: Directory name under deploy/environments
+    required: true
+  image-project:
+    description: Registry project path used for the image repositories
+    required: true
+  image-tag:
+    description: Immutable image tag to deploy (vX.Y.Z or git-<sha>)
+    required: true
+  kubeconfig:
+    description: Base64 encoded kubeconfig
+    required: true
+  values-overlay:
+    description: Optional extra values file content (secrets), kept out of Git
+    required: false
+    default: ""
+  url:
+    description: Public URL used for the smoke tests
+    required: true
+  insecure-tls:
+    description: Accept untrusted certificates in the smoke tests (staging issuer)
+    required: false
+    default: "false"
+  helm-version:
+    required: false
+    default: v3.17.3
+  namespace:
+    required: false
+    default: network-looking-glass
+  release:
+    required: false
+    default: looking-glass
+
+runs:
+  using: composite
+  steps:
+    - uses: azure/setup-helm@v4
+      with:
+        version: ${{ inputs.helm-version }}
+
+    - name: Configure cluster access
+      shell: bash
+      env:
+        KUBECONFIG_B64: ${{ inputs.kubeconfig }}
+      run: |
+        umask 077
+        mkdir -p "$HOME/.kube"
+        printf '%s' "$KUBECONFIG_B64" | base64 -d > "$HOME/.kube/config"
+
+    - name: Helm upgrade
+      shell: bash
+      env:
+        ENVIRONMENT: ${{ inputs.environment }}
+        OWNER: ${{ inputs.image-project }}
+        TAG: ${{ inputs.image-tag }}
+        OVERLAY: ${{ inputs.values-overlay }}
+        NAMESPACE: ${{ inputs.namespace }}
+        RELEASE: ${{ inputs.release }}
+      run: |
+        set -euo pipefail
+        args=(-f "deploy/environments/${ENVIRONMENT}/values.yaml")
+        if [ -n "$OVERLAY" ]; then
+          overlay_file=$(mktemp)
+          printf '%s' "$OVERLAY" > "$overlay_file"
+          args+=(-f "$overlay_file")
+        fi
+        for component in web api diagnostics; do
+          args+=(--set-string "${component}.image.repository=${OWNER}/${component}" --set-string "${component}.image.tag=${TAG}")
+        done
+        helm upgrade --install "$RELEASE" deploy/helm/looking-glass \
+          --namespace "$NAMESPACE" --create-namespace \
+          "${args[@]}" \
+          --atomic --wait --timeout 10m
+        helm test "$RELEASE" --namespace "$NAMESPACE" --timeout 3m --logs
+
+    - name: Smoke tests
+      shell: bash
+      env:
+        SMOKE_INSECURE: ${{ inputs.insecure-tls == 'true' && '1' || '0' }}
+      run: sh scripts/smoke-test.sh "${{ inputs.url }}"
+
+    - name: Remove cluster credentials
+      if: always()
+      shell: bash
+      run: rm -f "$HOME/.kube/config"

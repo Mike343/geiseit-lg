@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <RootNamespace>GeiseIT.LookingGlass.Diagnostics</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Contracts\GeiseIT.LookingGlass.Contracts.csproj" />
+    <PackageReference Include="DnsClient" />
+    <PackageReference Include="prometheus-net.AspNetCore" />
+    <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
+    <PackageReference Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" />
+    <PackageReference Include="OpenTelemetry.Instrumentation.AspNetCore" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="GeiseIT.LookingGlass.Diagnostics.Tests" />
+  </ItemGroup>
+</Project>
