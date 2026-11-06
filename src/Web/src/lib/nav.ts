@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Link2,
   Network,
+  Plane,
   Route,
   Search,
   Server,
@@ -66,7 +67,8 @@ export const NAV_GROUPS: NavGroup[] = [
     label: "About",
     items: [
       { label: "About GeiseIT", href: "/about", icon: Info, description: "What this Looking Glass is and how to use it" },
-      { label: "Infrastructure", href: "/about/infrastructure", icon: Boxes, description: "Built on Kubernetes" }
+      { label: "Infrastructure", href: "/about/infrastructure", icon: Boxes, description: "Built on Kubernetes" },
+      { label: "Hangar Addons", href: "/about/hangar-addons", icon: Plane, description: "How hangaraddons.com runs" }
     ]
   }
 ];

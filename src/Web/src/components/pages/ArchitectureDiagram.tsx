@@ -8,7 +8,7 @@ interface NodeProps {
   accent?: boolean;
 }
 
-function Node({ x, y, w = 160, h = 76, title, sub, accent }: NodeProps) {
+export function Node({ x, y, w = 160, h = 76, title, sub, accent }: NodeProps) {
   return (
     <g>
       <rect
@@ -30,7 +30,7 @@ function Node({ x, y, w = 160, h = 76, title, sub, accent }: NodeProps) {
   );
 }
 
-function Arrow({ d, dashed }: { d: string; dashed?: boolean }) {
+export function Arrow({ d, dashed }: { d: string; dashed?: boolean }) {
   return (
     <path
       d={d}
